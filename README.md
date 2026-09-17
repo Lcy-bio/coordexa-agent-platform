@@ -58,7 +58,11 @@ python scripts/verify_stack.py
 
 三条请求分别用于验证 RAG 跳过、技术知识增强和技术/账务主辅协同。详细验收步骤见 `docs/demo-and-test.md`。
 
-架构和能力边界见 `docs/architecture.md`，当前验证结果见 `docs/verification-status.md`，完整实操流程见 `docs/Coordexa完整使用与测试流程大纲.md`。
+## 架构概览
+
+![Coordexa 总体架构](docs/assets/architecture/01-overall-architecture.svg)
+
+完整架构与能力边界见 [`docs/architecture.md`](docs/architecture.md)，当前验证结果见 [`docs/verification-status.md`](docs/verification-status.md)，完整实操流程见 [`docs/Coordexa完整使用与测试流程大纲.md`](docs/Coordexa完整使用与测试流程大纲.md)。
 
 ## 量化评测
 
