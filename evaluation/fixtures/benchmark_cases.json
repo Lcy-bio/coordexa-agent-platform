@@ -1,0 +1,115 @@
+{
+  "dataset_name": "Coordexa 项目验收集 v1",
+  "scope": "企业运营客服原型；用于项目内回归验证，不代表生产环境通用准确率",
+  "chat_cases": [
+    {
+      "id": "greeting_01",
+      "message": "你好",
+      "expected_intent": "greeting",
+      "expected_primary": "general",
+      "expected_agents": ["general"],
+      "expect_knowledge": false
+    },
+    {
+      "id": "logistics_01",
+      "message": "我的订单什么时候到？",
+      "expected_intent": "logistics",
+      "expected_primary": "general",
+      "expected_agents": ["general"],
+      "expect_knowledge": true
+    },
+    {
+      "id": "logistics_02",
+      "message": "快递已经七天没更新了，应该怎么办？",
+      "expected_intent": "logistics",
+      "expected_primary": "general",
+      "expected_agents": ["general"],
+      "expect_knowledge": true
+    },
+    {
+      "id": "refund_01",
+      "message": "退款多久到账？",
+      "expected_intent": "refund",
+      "expected_primary": "billing",
+      "expected_agents": ["billing"],
+      "expect_knowledge": true
+    },
+    {
+      "id": "refund_02",
+      "message": "订单号 #A12345，我想申请退款",
+      "expected_intent": "refund",
+      "expected_primary": "billing",
+      "expected_agents": ["billing"],
+      "expect_knowledge": true,
+      "expected_entities": {"order_id": ["A12345"]}
+    },
+    {
+      "id": "invoice_01",
+      "message": "帮我开发票，抬头需要修改",
+      "expected_intent": "invoice",
+      "expected_primary": "billing",
+      "expected_agents": ["billing"],
+      "expect_knowledge": true
+    },
+    {
+      "id": "payment_01",
+      "message": "为什么被重复扣款 50 元？",
+      "expected_intent": "payment_issue",
+      "expected_primary": "billing",
+      "expected_agents": ["billing"],
+      "expect_knowledge": true,
+      "expected_entities": {"amount": ["50 元"]}
+    },
+    {
+      "id": "technical_401_01",
+      "message": "登录一直报 401，应该怎么排查？",
+      "expected_intent": "technical_login",
+      "expected_primary": "technical",
+      "expected_agents": ["technical"],
+      "expect_knowledge": true,
+      "expected_entities": {"error_code": ["401"]}
+    },
+    {
+      "id": "technical_500_01",
+      "message": "应用页面持续返回 500 错误",
+      "expected_intent": "technical_crash",
+      "expected_primary": "technical",
+      "expected_agents": ["technical"],
+      "expect_knowledge": true,
+      "expected_entities": {"error_code": ["500"]}
+    },
+    {
+      "id": "account_01",
+      "message": "我的账号疑似被盗，怎么修改密码？",
+      "expected_intent": "account_security",
+      "expected_primary": "billing",
+      "expected_agents": ["billing"],
+      "expect_knowledge": true
+    },
+    {
+      "id": "handoff_01",
+      "message": "我要投诉，请转人工客服",
+      "expected_intent": "human_handoff",
+      "expected_primary": "escalation",
+      "expected_agents": ["escalation"],
+      "expect_knowledge": false
+    },
+    {
+      "id": "composite_01",
+      "message": "登录一直报 401，而且刚才还被重复扣款了",
+      "expected_intent": ["technical_login", "payment_issue"],
+      "expected_primary": ["technical", "billing"],
+      "expected_agents": ["technical", "billing"],
+      "expect_knowledge": true,
+      "expected_entities": {"error_code": ["401"]}
+    }
+  ],
+  "retrieval_cases": [
+    {"id": "rag_refund", "query": "退款审核后多久到账", "expected_title": "退款政策"},
+    {"id": "rag_order", "query": "订单发货后七天还没收到", "expected_title": "订单查询"},
+    {"id": "rag_delivery", "query": "标准配送需要几个工作日", "expected_title": "配送说明"},
+    {"id": "rag_401", "query": "登录时出现 401 认证失败", "expected_title": "技术故障排查"},
+    {"id": "rag_security", "query": "账户异常登录后如何保护账号", "expected_title": "账户安全"},
+    {"id": "rag_points", "query": "会员积分什么时候过期", "expected_title": "会员与积分"}
+  ]
+}

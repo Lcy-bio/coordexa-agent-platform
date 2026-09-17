@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# 环境变量（含敏感信息）
+.env
+
+# 运行期数据；保留 data/demo_docs 和评测夹具
+data/chroma/
+data/eval/baseline.json
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker 构建产物
+build-image*.sh
+
+# ChromaDB 本地数据
+*.sqlite3
+
+# 备份文件
+*~
+*.bak
+docker-compose(1).yml

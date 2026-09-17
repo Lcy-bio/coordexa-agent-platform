@@ -1,0 +1,109 @@
+name: coordexa
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-coordexa_dev_password}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-coordexa_dev_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - chromadb-data:/chroma/chroma
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-coordexa_dev_password}@redis:6379/0
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+      CHROMA_PERSIST_DIRECTORY: /app/data/chroma
+      EVAL_BASELINE_PATH: /app/data/eval/baseline.json
+      COORDEXA_SKILLS_DIR: /app/skills
+      COORDEXA_SKILLS_MAX_PROMPT_CHARS: ${COORDEXA_SKILLS_MAX_PROMPT_CHARS:-5000}
+      MONITOR_INTERVAL: ${MONITOR_INTERVAL:-10}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      PROMETHEUS_PORT: 8001
+    volumes:
+      - backend-data:/app/data
+      - ./backend/skills:/app/skills:ro
+    ports:
+      - "${COORDEXA_BACKEND_PORT:-8200}:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5).read()\""]
+      interval: 20s
+      timeout: 8s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      COORDEXA_API_URL: /api
+    ports:
+      - "${COORDEXA_FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./backend/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${COORDEXA_PROMETHEUS_PORT:-9190}:9090"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  tests:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      ANTHROPIC_API_KEY: test-key
+    command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"]
+    profiles: ["test"]
+
+volumes:
+  redis-data:
+  chromadb-data:
+  backend-data:
+  prometheus-data:

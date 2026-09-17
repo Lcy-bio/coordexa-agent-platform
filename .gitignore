@@ -1,0 +1,17 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+node_modules/
+dist/
+data/chroma/
+backend/data/chroma/
+backend/data/eval/baseline.json
+artifacts/
+logs/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
