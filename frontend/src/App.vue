@@ -2,7 +2,7 @@
   <main :class="['app-shell', `app-shell-${activeView}`]">
     <header class="topbar">
       <a class="brand" href="#" aria-label="Coordexa 首页" @click.prevent="activeView = 'chat'">
-        <span class="brand-mark">N</span>
+        <span class="brand-mark">C</span>
         <span class="brand-name">Coordexa</span>
       </a>
 

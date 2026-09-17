@@ -83,7 +83,7 @@
     <text class="label" x="42" y="42">知识孤岛</text>
     <rect x="67" y="78" width="72" height="92" rx="8" fill="#ffffff" stroke="#6045a9" stroke-width="6"/>
     <path d="M139 78 L170 109 L139 109 Z" fill="#dcd5fa" stroke="#6045a9" stroke-width="5"/>
-    <text x="78" y="142" font-family="Arial" font-size="34" font-weight="800" fill="#6045a9">FAQ</text>
+    <text x="103" y="140" text-anchor="middle" font-family="Arial" font-size="26" font-weight="800" fill="#6045a9">FAQ</text>
     <text class="small" x="42" y="238">知识未检索</text>
     <text class="small" x="42" y="272">规则难追踪</text>
     <text class="small" x="42" y="306">回复不稳定</text>
@@ -169,7 +169,7 @@
     <text class="label" x="58" y="35">API 网关</text>
     <rect x="34" y="90" width="126" height="70" rx="10" fill="#fff" stroke="#14945b" stroke-width="5"/>
     <text class="green" x="61" y="133" font-family="Arial" font-size="40" font-weight="800">API</text>
-    <text class="small" x="42" y="220">Nginx 转发</text>
+    <text class="small" x="36" y="220">Coordexa 网关</text>
     <text class="small" x="36" y="248">主服务处理</text>
   </g>
   <polygon class="arrow" points="540,785 513,757 513,775 488,775 488,795 513,795 513,813"/>
