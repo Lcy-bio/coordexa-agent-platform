@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 from anthropic import AsyncAnthropic
 
 from core.llm_utils import extract_json_value, extract_labeled_floats, extract_text_content
+from core.llm_usage import component_context, track_client
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ class IntentRecognizer:
         kwargs: Dict[str, Any] = {"api_key": api_key}
         if base_url:
             kwargs["base_url"] = base_url
-        self.client    = AsyncAnthropic(**kwargs)
+        self.client    = track_client(AsyncAnthropic(**kwargs))
         self.model     = model
         self.threshold = confidence_threshold
         # 本地字符 n-gram 向量始终可用；如果未来客户端暴露 embeddings 资源，
@@ -266,12 +267,13 @@ class IntentRecognizer:
         prompt = self._clean_text(prompt)
 
         try:
-            resp = await self.client.messages.create(
-                model=self.model,
-                max_tokens=256,
-                temperature=0.1,
-                messages=[{"role": "user", "content": prompt}],
-            )
+            with component_context("intent.llm"):
+                resp = await self.client.messages.create(
+                    model=self.model,
+                    max_tokens=256,
+                    temperature=0.1,
+                    messages=[{"role": "user", "content": prompt}],
+                )
             raw = extract_text_content(resp.content)
             data = self._parse_llm_payload(raw)
             try:

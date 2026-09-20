@@ -44,6 +44,8 @@ _evaluator    = None
 _skill_manager = None
 _knowledge_base = None
 
+from core.llm_usage import get_usage_tracker, request_context
+
 def _anthropic_cfg() -> Dict[str, Any]:
     key = os.getenv("ANTHROPIC_API_KEY", "")
     if not key:
@@ -232,6 +234,9 @@ class ChatResponse(BaseModel):
     entities: Dict[str, List[str]] = Field(default_factory=dict)
     intent_confidence: float = 0.0
     intent_source_scores: Dict[str, float] = Field(default_factory=dict)
+    llm_usage: Dict[str, Any] = Field(default_factory=dict)
+    degraded: bool = False
+    degraded_agents: List[str] = Field(default_factory=list)
 
 
 class ToolTraceResponse(BaseModel):
@@ -273,6 +278,12 @@ async def reload_skills():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
+    request_id = str(uuid.uuid4())[:8]
+    with request_context(request_id):
+        return await _chat_impl(req, request_id)
+
+
+async def _chat_impl(req: ChatRequest, request_id: str):
     """
     主对话接口。完整流程：
       记忆读取 → 意图识别 → RAG 门控 → Agent 路由 → 执行 → 记忆写入
@@ -317,6 +328,7 @@ async def chat(req: ChatRequest):
         urgency=intent_result.urgency,
         intent_confidence=intent_result.confidence,
         knowledge_prefetched=knowledge_used,
+        request_id=request_id,
     )
 
     # 3. 执行
@@ -350,6 +362,9 @@ async def chat(req: ChatRequest):
         entities=intent_result.entities,
         intent_confidence=round(intent_result.confidence, 4),
         intent_source_scores=intent_result.source_scores,
+        llm_usage=get_usage_tracker().summary(request_id=request_id),
+        degraded=result.degraded,
+        degraded_agents=result.degraded_agents,
     )
 
 
@@ -364,13 +379,18 @@ async def _build_knowledge_context(message: str, intent=None, top_k: int = 3) ->
     if not _should_use_knowledge(message, intent=intent):
         return "", False
     try:
-        result = await _tool_manager.search_with_rewrite("knowledge_search", message, top_k=top_k)
+        effective_top_k = _dynamic_top_k(message, intent=intent, requested=top_k)
+        result = await _tool_manager.search_with_rewrite(
+            "knowledge_search",
+            message,
+            top_k=effective_top_k,
+        )
         if not result.success or not isinstance(result.data, list) or not result.data:
             return "", False
 
         parts = ["[知识库检索结果]"]
         used = False
-        for i, item in enumerate(result.data[:top_k], start=1):
+        for i, item in enumerate(result.data[:effective_top_k], start=1):
             if not isinstance(item, dict):
                 continue
             title = str(item.get("title", "未命名文档"))
@@ -388,6 +408,24 @@ async def _build_knowledge_context(message: str, intent=None, top_k: int = 3) ->
     except Exception as ex:
         logger.warning(f"构建知识库上下文失败: {ex}")
         return "", False
+
+
+def _dynamic_top_k(message: str, intent: Any = None, requested: int = 3) -> int:
+    """按问题复杂度动态调整 RAG Top-K，并保留环境变量控制边界。"""
+    try:
+        default = max(1, int(os.getenv("COORDEXA_RAG_DEFAULT_TOP_K", str(requested))))
+        maximum = max(default, int(os.getenv("COORDEXA_RAG_MAX_TOP_K", "8")))
+    except (TypeError, ValueError):
+        default, maximum = max(1, requested), 8
+    value = max(1, default)
+    text = (message or "").lower()
+    if len(text) >= 80:
+        value += 1
+    if sum(1 for keyword in ("同时", "以及", "而且", "退款", "401", "500", "重复扣款") if keyword in text) >= 2:
+        value += 1
+    if getattr(intent, "value", intent) in {"complaint", "escalation", "human_handoff"}:
+        value = max(value, default + 1)
+    return min(value, maximum)
 
 
 def _should_use_knowledge(message: str, intent=None) -> bool:
@@ -442,6 +480,19 @@ async def list_recent_tool_traces(limit: int = 20):
     if _orchestrator is None:
         raise HTTPException(503, "服务未就绪")
     return RecentToolTracesResponse(items=_orchestrator.get_recent_tool_traces(limit=limit))
+
+
+@app.get("/trace/llm/{request_id}")
+async def get_llm_trace(request_id: str, limit: int = Query(100, ge=1, le=500)):
+    """查看一次请求涉及的所有 LLM 调用、Token usage 和成本估算。"""
+    return get_usage_tracker().summary(request_id=request_id, limit=limit)
+
+
+@app.get("/trace/llm")
+async def list_llm_traces(limit: int = Query(20, ge=1, le=100)):
+    """查看最近请求的 LLM 观测记录，便于面试演示和回归排查。"""
+    records = get_usage_tracker().records(limit=limit)
+    return {"items": records, "count": len(records)}
 
 
 @app.get("/metrics")

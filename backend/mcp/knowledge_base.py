@@ -14,12 +14,36 @@ ChromaDB 在这里的角色：
 import asyncio
 import hashlib
 import logging
+import os
 import re
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import chromadb
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ChunkingConfig:
+    """可通过环境变量调整的切片策略；默认值保持 v1.0 行为。"""
+
+    max_chars: int = 500
+    overlap_chars: int = 0
+    hard_split: bool = True
+
+    @classmethod
+    def from_env(cls) -> "ChunkingConfig":
+        try:
+            max_chars = max(100, int(os.getenv("COORDEXA_CHUNK_SIZE", "500")))
+        except ValueError:
+            max_chars = 500
+        try:
+            overlap = max(0, int(os.getenv("COORDEXA_CHUNK_OVERLAP", "0")))
+        except ValueError:
+            overlap = 0
+        hard_split = os.getenv("COORDEXA_CHUNK_HARD_SPLIT", "true").lower() not in {"0", "false", "no"}
+        return cls(max_chars=max_chars, overlap_chars=min(overlap, max_chars // 2), hard_split=hard_split)
 
 
 class KnowledgeBase:
@@ -38,7 +62,9 @@ class KnowledgeBase:
         chroma_host: str = "localhost",
         chroma_port: int = 8000,
         chroma_path: str = "./data/chroma",
+        chunking: Optional[ChunkingConfig] = None,
     ):
+        self.chunking = chunking or ChunkingConfig.from_env()
         # 优先连接独立 ChromaDB 服务（服务端内置 embedding 模型，客户端无需下载）
         self._use_server = False
         try:
@@ -83,13 +109,26 @@ class KnowledgeBase:
         for doc in documents:
             title   = doc.get("title", "")
             content = doc.get("content", "")
-            chunks  = self._chunk_text(content, chunk_size=500)
+            chunking = getattr(self, "chunking", ChunkingConfig())
+            chunks  = self._chunk_text(
+                content,
+                chunk_size=chunking.max_chars,
+                overlap=chunking.overlap_chars,
+                hard_split=chunking.hard_split,
+            )
 
             for i, chunk in enumerate(chunks):
                 doc_id = hashlib.md5(f"{title}_{i}_{chunk[:50]}".encode()).hexdigest()
                 ids.append(doc_id)
                 docs.append(chunk)
-                metas.append({"title": title, "chunk_index": i, "total_chunks": len(chunks)})
+                metas.append({
+                    "title": title,
+                    "chunk_index": i,
+                    "total_chunks": len(chunks),
+                    "chunk_size": chunking.max_chars,
+                    "chunk_overlap": chunking.overlap_chars,
+                    "source_type": "api",
+                })
 
         if ids:
             # 确定性 ID + upsert 使重复导入幂等，并允许同标题同片段内容更新元数据。
@@ -119,10 +158,14 @@ class KnowledgeBase:
 
         items = []
         if results["documents"] and results["documents"][0]:
-            for doc, meta, dist in zip(
+            source_ids = (results.get("ids") or [[]])[0]
+            if len(source_ids) != len(results["documents"][0]):
+                source_ids = [""] * len(results["documents"][0])
+            for doc, meta, dist, source_id in zip(
                 results["documents"][0],
                 results["metadatas"][0],
                 results["distances"][0],
+                source_ids,
             ):
                 vector_score = 1.0 - float(dist)
                 lexical_score = self._lexical_score(query, str(meta.get("title", "")), str(doc))
@@ -131,6 +174,9 @@ class KnowledgeBase:
                     "content":  doc,
                     "vector_score": round(vector_score, 4),
                     "lexical_score": round(lexical_score, 4),
+                    "distance": round(float(dist), 4),
+                    "source_id": str(source_id),
+                    "source_type": meta.get("source_type", "unknown"),
                     "chunk":    meta.get("chunk_index", 0),
                 })
 
@@ -146,6 +192,7 @@ class KnowledgeBase:
             )
             # 中文短查询优先依靠字符 n-gram 覆盖，向量分负责补充语义相似结果。
             item["score"] = round(0.80 * item["lexical_score"] + 0.20 * vector_normalized, 4)
+            item["fused_score"] = item["score"]
 
         items.sort(key=lambda item: (item["score"], item["lexical_score"]), reverse=True)
         return items[:top_k]
@@ -180,23 +227,28 @@ class KnowledgeBase:
 
     # ── 内部方法 ──────────────────────────────────────────────────────────────
 
-    def _chunk_text(self, text: str, chunk_size: int = 500) -> List[str]:
+    def _chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 0, hard_split: bool = True) -> List[str]:
         """将长文本按 chunk_size 切片，保留语义完整性（按句号/换行切分）。"""
         if len(text) <= chunk_size:
             return [text] if text.strip() else []
 
         chunks = []
         current = ""
-        # 按句子切分
-        sentences = text.replace("\n", "。").split("。")
+        # 按句子切分；超长句在 hard_split 模式下继续硬切。
+        sentences = [part.strip() for part in re.split(r"(?<=[。！？.!?；;])|\n+", text) if part.strip()]
         for sent in sentences:
-            sent = sent.strip()
-            if not sent:
+            if hard_split and len(sent) > chunk_size:
+                if current:
+                    chunks.append(current)
+                    current = ""
+                step = max(1, chunk_size - overlap)
+                chunks.extend(sent[start:start + chunk_size] for start in range(0, len(sent), step))
                 continue
             if len(current) + len(sent) + 1 > chunk_size:
                 if current:
                     chunks.append(current)
-                current = sent
+                prefix = chunks[-1][-overlap:] if overlap and chunks else ""
+                current = f"{prefix}{sent}" if prefix else sent
             else:
                 current = f"{current}。{sent}" if current else sent
 

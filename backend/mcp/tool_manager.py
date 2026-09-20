@@ -25,6 +25,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from anthropic import AsyncAnthropic
 
 from core.llm_utils import extract_json_value, extract_text_content
+from core.llm_usage import component_context, track_client
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,8 @@ class ToolResult:
     cached:         bool = False
     latency_ms:     float = 0.0
     reranked:       bool = False   # 是否经过重排
+    fallback_used:  bool = False
+    degraded:       bool = False
 
 
 @dataclass
@@ -138,7 +141,7 @@ class MCPToolManager:
         kwargs: Dict[str, Any] = {"api_key": api_key}
         if base_url:
             kwargs["base_url"] = base_url
-        self._client = AsyncAnthropic(**kwargs)
+        self._client = track_client(AsyncAnthropic(**kwargs))
         self._model  = model
         self._tools: Dict[str, Tool] = {}
         self._cache: Dict[str, tuple] = {}   # key → (result, expire_at, reranked)
@@ -245,7 +248,7 @@ class MCPToolManager:
     ) -> ToolResult:
         """工具不可用时返回降级结果，而不是把空错误直接暴露给调用方。"""
         if tool.fallback is None:
-            return ToolResult(success=False, data=None, tool_name=tool.name, error=error)
+            return ToolResult(success=False, data=None, tool_name=tool.name, error=error, degraded=True)
         try:
             data = tool.fallback(params, context, error)
             if asyncio.iscoroutine(data):
@@ -255,10 +258,12 @@ class MCPToolManager:
                 data=data,
                 tool_name=tool.name,
                 error=error,
+                fallback_used=True,
+                degraded=True,
             )
         except Exception as ex:
             logger.error(f"工具降级失败: {tool.name} — {ex}")
-            return ToolResult(success=False, data=None, tool_name=tool.name, error=f"{error}; fallback失败: {ex}")
+            return ToolResult(success=False, data=None, tool_name=tool.name, error=f"{error}; fallback失败: {ex}", degraded=True)
 
     async def _run_handler(
         self,
@@ -298,10 +303,11 @@ class MCPToolManager:
 返回 JSON 数组，例如: ["子查询1", "子查询2", "子查询3"]"""
         prompt = self._clean_text(prompt)
         try:
-            resp = await self._client.messages.create(
-                model=self._model, max_tokens=256, temperature=0.3,
-                messages=[{"role": "user", "content": prompt}],
-            )
+            with component_context("rag.rewrite"):
+                resp = await self._client.messages.create(
+                    model=self._model, max_tokens=256, temperature=0.3,
+                    messages=[{"role": "user", "content": prompt}],
+                )
             raw = extract_text_content(resp.content)
             queries = extract_json_value(raw, list)
             queries = [str(item).strip() for item in queries if str(item).strip()][:n]
@@ -377,10 +383,11 @@ class MCPToolManager:
         prompt = self._clean_text(prompt)
 
         try:
-            resp = await self._client.messages.create(
-                model=self._model, max_tokens=256, temperature=0.0,
-                messages=[{"role": "user", "content": prompt}],
-            )
+            with component_context("rag.rerank"):
+                resp = await self._client.messages.create(
+                    model=self._model, max_tokens=256, temperature=0.0,
+                    messages=[{"role": "user", "content": prompt}],
+                )
             raw = extract_text_content(resp.content)
             parsed_order = extract_json_value(raw, list)
             order: List[int] = []

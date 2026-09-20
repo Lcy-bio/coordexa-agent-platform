@@ -40,7 +40,9 @@ from agents.tools import (
     technical_tools,
 )
 from core.intent_recognizer import IntentCategory, IntentRecognizer, UrgencyLevel
+from core.context_budget import ContextBudget
 from core.llm_utils import extract_text_content
+from core.llm_usage import component_context, track_client
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +122,8 @@ class AgentResponse:
     escalate:    bool  = False   # 是否需要升级
     tools_used:  List[str] = field(default_factory=list)
     tool_traces: List[Dict[str, Any]] = field(default_factory=list)
+    failure_reason: str = ""
+    degraded: bool = False
 
 
 @dataclass
@@ -153,6 +157,8 @@ class OrchestratorResult:
     tool_traces: List[Dict[str, Any]] = field(default_factory=list)
     routing_reason: str = ""
     routing_confidence: float = 0.0
+    degraded: bool = False
+    degraded_agents: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -188,7 +194,7 @@ class BaseAgent:
         skill_manager: Optional[Any] = None,
         profile: Optional[AgentProfile] = None,
     ):
-        self._client = client
+        self._client = track_client(client)
         self.profile = profile or self.profile
         self._model  = self.profile.model or model
         self._skill_manager = skill_manager
@@ -208,42 +214,51 @@ class BaseAgent:
         t0 = time.monotonic()
         self._last_tools_used = []
         self._last_tool_traces = []
-        try:
-            content = await self._call_llm(req)
-            ms = (time.monotonic() - t0) * 1000
-            self.stats.total += 1
-            self.stats.success += 1
-            self.stats.total_ms += ms
-            escalate = self._needs_escalation(content)
-            return AgentResponse(
-                agent_type=self.agent_type,
-                content=content,
-                success=True,
-                latency_ms=ms,
-                escalate=escalate,
-                tools_used=list(self._last_tools_used),
-                tool_traces=list(self._last_tool_traces),
-            )
-        except Exception as ex:
-            ms = (time.monotonic() - t0) * 1000
-            self.stats.total += 1
-            self.stats.total_ms += ms
-            logger.error(f"{self.agent_type.value} 处理失败: {ex}")
-            return AgentResponse(
-                agent_type=self.agent_type,
-                content="抱歉，处理您的请求时出现问题，请稍后重试。",
-                success=False,
-                latency_ms=ms,
-                tool_traces=list(self._last_tool_traces),
-            )
+        last_error: Optional[Exception] = None
+        for attempt in range(2):
+            try:
+                content = await self._call_llm(req)
+                if not content or not content.strip():
+                    raise RuntimeError("Agent 返回空文本")
+                ms = (time.monotonic() - t0) * 1000
+                self.stats.total += 1
+                self.stats.success += 1
+                self.stats.total_ms += ms
+                escalate = self._needs_escalation(content)
+                return AgentResponse(
+                    agent_type=self.agent_type,
+                    content=content.strip(),
+                    success=True,
+                    latency_ms=ms,
+                    escalate=escalate,
+                    tools_used=list(self._last_tools_used),
+                    tool_traces=list(self._last_tool_traces),
+                )
+            except Exception as ex:
+                last_error = ex
+                if attempt == 0:
+                    logger.warning("%s 返回异常，重试一次: %s", self.agent_type.value, ex)
+        ms = (time.monotonic() - t0) * 1000
+        self.stats.total += 1
+        self.stats.total_ms += ms
+        logger.error(f"{self.agent_type.value} 处理失败: {last_error}")
+        return AgentResponse(
+            agent_type=self.agent_type,
+            content="抱歉，处理您的请求时出现问题，请稍后重试。",
+            success=False,
+            latency_ms=ms,
+            tool_traces=list(self._last_tool_traces),
+            failure_reason=str(last_error or "unknown"),
+        )
 
     async def _call_llm(self, req: Request) -> str:
         def _clean(s: str) -> str:
             return s.encode("utf-8", errors="ignore").decode("utf-8")
 
         messages = []
-        if req.context:
-            messages.append({"role": "user", "content": f"[背景信息]\n{_clean(req.context)}"})
+        bounded_context = ContextBudget.from_env().fit_context(req.context, query=req.message)
+        if bounded_context:
+            messages.append({"role": "user", "content": f"[背景信息]\n{_clean(bounded_context)}"})
             messages.append({"role": "assistant", "content": "好的，我已了解背景信息。"})
         if req.entities:
             entities_text = json.dumps(req.entities, ensure_ascii=False)
@@ -284,7 +299,8 @@ class BaseAgent:
                     }
                     for spec in tools.values()
                 ]
-            resp = await self._client.messages.create(**request_kwargs)
+            with component_context(f"agent.{self.agent_type.value}"):
+                resp = await self._client.messages.create(**request_kwargs)
             tool_uses = [block for block in (resp.content or []) if self._block_type(block) == "tool_use"]
             if not tool_uses:
                 self._last_tools_used = tools_used
@@ -579,14 +595,14 @@ class ResponseComposer:
     """多 Agent 汇总节点，统一主次、去重和输出边界。"""
 
     def __init__(self, client: AsyncAnthropic, model: str, skill_manager: Optional[Any] = None):
-        self._client = client
+        self._client = track_client(client)
         self._model = model
         self._skill_manager = skill_manager
 
     async def compose(self, req: Request, responses: List[AgentResponse]) -> str:
         successful = [response for response in responses if response.success and response.content.strip()]
         if not successful:
-            return "抱歉，所有 Agent 均处理失败。"
+            return "抱歉，所有专业 Agent 均未返回有效结果，请稍后重试或转人工客服。"
         if len(successful) == 1:
             return successful[0].content
 
@@ -608,12 +624,13 @@ class ResponseComposer:
             if skill:
                 prompt += f"\n\n[通用客服输出边界]\n{skill}"
         try:
-            response = await self._client.messages.create(
-                model=self._model,
-                max_tokens=_env_int("COORDEXA_COMPOSER_MAX_TOKENS", 1000),
-                temperature=_env_float("COORDEXA_COMPOSER_TEMPERATURE", 0.1),
-                messages=[{"role": "user", "content": prompt}],
-            )
+            with component_context("composer"):
+                response = await self._client.messages.create(
+                    model=self._model,
+                    max_tokens=_env_int("COORDEXA_COMPOSER_MAX_TOKENS", 1000),
+                    temperature=_env_float("COORDEXA_COMPOSER_TEMPERATURE", 0.1),
+                    messages=[{"role": "user", "content": prompt}],
+                )
             content = extract_text_content(response.content).strip()
             if content:
                 return content
@@ -666,7 +683,7 @@ class AgentOrchestrator:
         kwargs: Dict[str, Any] = {"api_key": api_key}
         if base_url:
             kwargs["base_url"] = base_url
-        client = AsyncAnthropic(**kwargs)
+        client = track_client(AsyncAnthropic(**kwargs))
 
         self._intent_recognizer = IntentRecognizer(api_key=api_key, base_url=base_url, model=model)
         self._skill_manager = skill_manager
@@ -810,6 +827,8 @@ class AgentOrchestrator:
             tool_traces=list(response.tool_traces),
             routing_reason=decision.reason,
             routing_confidence=decision.confidence,
+            degraded=response.degraded or not response.success,
+            degraded_agents=[response.agent_type.value] if response.degraded or not response.success else [],
         )
         self._record_tool_trace(result)
         return result
@@ -825,6 +844,12 @@ class AgentOrchestrator:
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         valid_responses = [r for r in responses if isinstance(r, AgentResponse)]
+        degraded_agents: List[str] = []
+        for agent_type, response in zip(agent_types, responses):
+            if not isinstance(response, AgentResponse):
+                degraded_agents.append(agent_type.value)
+            elif response.degraded or not response.success or not response.content.strip():
+                degraded_agents.append(agent_type.value)
         combined = await self._composer.compose(req, valid_responses)
         escalated = AgentType.ESCALATION in decision.agent_types
         tools_used = list(dict.fromkeys(
@@ -854,6 +879,8 @@ class AgentOrchestrator:
             tool_traces=tool_traces,
             routing_reason=decision.reason,
             routing_confidence=decision.confidence,
+            degraded=bool(degraded_agents),
+            degraded_agents=degraded_agents,
         )
         self._record_tool_trace(result)
         return result
@@ -1090,6 +1117,8 @@ class AgentOrchestrator:
             fallback = self._best_agent(AgentType.GENERAL)
             if fallback:
                 response = await fallback.handle(req)
+                response.degraded = True
+                response.failure_reason = f"{agent_type.value} Agent failed; used GeneralAgent fallback"
 
         return response
 

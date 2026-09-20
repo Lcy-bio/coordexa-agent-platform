@@ -63,6 +63,7 @@ python scripts/verify_stack.py
 ![Coordexa 总体架构](docs/assets/architecture/01-overall-architecture.svg)
 
 完整架构与能力边界见 [`docs/architecture.md`](docs/architecture.md)，当前验证结果见 [`docs/verification-status.md`](docs/verification-status.md)，完整实操流程见 [`docs/Coordexa完整使用与测试流程大纲.md`](docs/Coordexa完整使用与测试流程大纲.md)。
+v1.1 面试问题驱动的 Token、上下文、降级与稳定性验证见 [`docs/v1.1-interview-hardening.md`](docs/v1.1-interview-hardening.md)。
 
 ## 量化评测
 
@@ -91,6 +92,14 @@ python scripts/run_benchmark.py --base-url http://localhost:8200 --output artifa
 - 请求成功率、P50/P95 延迟
 
 LLM-as-Judge 质量评测需要显式增加 `--include-quality-eval`。Judge 失败的样本不会被当作有效的 0.5 分，报告会单独展示 Judge 成功率。
+
+运行 v1.1 稳定性扩展集（48 条对话 + 24 条检索请求）：
+
+```bash
+python scripts/run_benchmark.py --base-url http://localhost:8200 --cases evaluation/fixtures/benchmark_cases_v2.json --output artifacts/benchmark-v2-report.json
+```
+
+单次 `/chat` 响应包含 `llm_usage`；也可以通过 `/trace/llm/{request_id}` 查看按组件拆分的真实 Token usage。
 
 ## 项目结构
 

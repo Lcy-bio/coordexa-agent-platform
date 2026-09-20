@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 from anthropic import AsyncAnthropic
 
 from core.llm_utils import extract_json_value, extract_labeled_floats, extract_text_content
+from core.llm_usage import component_context, track_client
 
 from core.intent_recognizer import IntentCategory, IntentRecognizer
 
@@ -107,7 +108,7 @@ Agent 响应: {response}
 只返回 JSON，例如: {{"relevance": 0.9, "accuracy": 0.8, "completeness": 0.7, "helpfulness": 0.85}}"""
 
     def __init__(self, client: AsyncAnthropic, model: str):
-        self._client = client
+        self._client = track_client(client)
         self._model  = model
 
     async def judge(
@@ -127,10 +128,11 @@ Agent 响应: {response}
         for attempt in range(2):
             try:
                 max_tokens = 1600 if attempt == 0 else 3200
-                resp = await self._client.messages.create(
-                    model=self._model, max_tokens=max_tokens, temperature=0.0,
-                    messages=[{"role": "user", "content": prompt}],
-                )
+                with component_context("evaluation.judge"):
+                    resp = await self._client.messages.create(
+                        model=self._model, max_tokens=max_tokens, temperature=0.0,
+                        messages=[{"role": "user", "content": prompt}],
+                    )
                 raw = extract_text_content(resp.content)
                 if not raw.strip():
                     logger.warning(

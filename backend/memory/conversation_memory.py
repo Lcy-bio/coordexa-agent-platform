@@ -26,6 +26,7 @@ import redis.asyncio as redis
 from anthropic import AsyncAnthropic
 
 from core.llm_utils import extract_json_value, extract_text_content
+from core.llm_usage import component_context, track_client
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class MemoryManager:
         kwargs: Dict[str, Any] = {"api_key": api_key}
         if base_url:
             kwargs["base_url"] = base_url
-        self._client = AsyncAnthropic(**kwargs)
+        self._client = track_client(AsyncAnthropic(**kwargs))
         self._model  = model
 
         self._redis = redis.from_url(redis_url, decode_responses=True)
@@ -185,10 +186,11 @@ class MemoryManager:
         prompt = self._safe_text(prompt)
 
         try:
-            resp = await self._client.messages.create(
-                model=self._model, max_tokens=1600, temperature=0.0,
-                messages=[{"role": "user", "content": prompt}],
-            )
+            with component_context("memory.profile"):
+                resp = await self._client.messages.create(
+                    model=self._model, max_tokens=1600, temperature=0.0,
+                    messages=[{"role": "user", "content": prompt}],
+                )
             raw = extract_text_content(resp.content).strip()
             if not raw:
                 logger.info("模型未返回用户画像，保留已有画像")
@@ -269,10 +271,11 @@ class MemoryManager:
         text = self._safe_text("\n".join(f"{m.role.value}: {m.content}" for m in to_compress))
         prompt = self._safe_text(f"用 2-3 句话总结以下对话的关键信息：\n{text}")
         try:
-            resp = await self._client.messages.create(
-                model=self._model, max_tokens=1600, temperature=0.0,
-                messages=[{"role": "user", "content": prompt}],
-            )
+            with component_context("memory.summary"):
+                resp = await self._client.messages.create(
+                    model=self._model, max_tokens=1600, temperature=0.0,
+                    messages=[{"role": "user", "content": prompt}],
+                )
             summary = self._safe_text(extract_text_content(resp.content)).strip()
             if not summary:
                 raise ValueError("LLM 未返回摘要文本")
@@ -489,12 +492,13 @@ class MemoryManager:
 """
         )
         try:
-            resp = await self._client.messages.create(
-                model=self._model,
-                max_tokens=256,
-                temperature=0.0,
-                messages=[{"role": "user", "content": prompt}],
-            )
+            with component_context("memory.summary_merge"):
+                resp = await self._client.messages.create(
+                    model=self._model,
+                    max_tokens=256,
+                    temperature=0.0,
+                    messages=[{"role": "user", "content": prompt}],
+                )
             merged = self._safe_text(extract_text_content(resp.content)).strip()
             if merged:
                 return merged[: self.SUMMARY_MAX_CHARS]
