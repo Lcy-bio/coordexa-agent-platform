@@ -97,7 +97,7 @@ class KnowledgeBase:
 
     # ── 文档管理 ──────────────────────────────────────────────────────────────
 
-    def add_documents(self, documents: List[Dict[str, str]]) -> int:
+    def add_documents(self, documents: List[Dict[str, Any]]) -> int:
         """
         批量导入文档到知识库。
 
@@ -109,6 +109,7 @@ class KnowledgeBase:
         for doc in documents:
             title   = doc.get("title", "")
             content = doc.get("content", "")
+            source_type = str(doc.get("source_type", "api"))
             chunking = getattr(self, "chunking", ChunkingConfig())
             chunks  = self._chunk_text(
                 content,
@@ -127,7 +128,7 @@ class KnowledgeBase:
                     "total_chunks": len(chunks),
                     "chunk_size": chunking.max_chars,
                     "chunk_overlap": chunking.overlap_chars,
-                    "source_type": "api",
+                    "source_type": source_type,
                 })
 
         if ids:
@@ -137,7 +138,7 @@ class KnowledgeBase:
 
         return len(ids)
 
-    async def add_documents_async(self, documents: List[Dict[str, str]]) -> int:
+    async def add_documents_async(self, documents: List[Dict[str, Any]]) -> int:
         """异步导入文档；ChromaDB 客户端为同步实现，因此放入线程池执行。"""
         return await asyncio.to_thread(self.add_documents, documents)
 
@@ -358,5 +359,5 @@ class KnowledgeBase:
                 ),
             },
         ]
-        self.add_documents(default_docs)
+        self.add_documents([{**doc, "source_type": "demo_builtin"} for doc in default_docs])
         logger.info(f"已导入默认知识库: {len(default_docs)} 篇文档")

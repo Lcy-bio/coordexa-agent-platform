@@ -569,7 +569,10 @@ async def add_knowledge(body: BatchDocInput):
     ```
     """
     kb = _require_knowledge_base()
-    count = await kb.add_documents_async([{"title": d.title, "content": d.content} for d in body.documents])
+    count = await kb.add_documents_async([
+        {"title": d.title, "content": d.content, "source_type": "api"}
+        for d in body.documents
+    ])
     total = await kb.doc_count_async()
     return {"message": f"成功导入 {count} 个文档片段", "added_chunks": count, "total_chunks": total}
 
@@ -614,7 +617,10 @@ async def upload_knowledge(file: UploadFile = File(...)):
         title = filename.rsplit(".", 1)[0] if "." in filename else filename
         docs = [{"title": title, "content": text}]
 
-    count = await kb.add_documents_async(docs)
+    count = await kb.add_documents_async([
+        {**doc, "source_type": "upload"}
+        for doc in docs
+    ])
     total = await kb.doc_count_async()
     return {
         "message": f"文件 {filename} 导入成功",
