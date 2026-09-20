@@ -37,7 +37,8 @@ body {
     radial-gradient(900px 500px at 14% 0%, rgba(111, 120, 247, 0.12), transparent 62%),
     linear-gradient(180deg, #0b0c0f 0%, #0d0f14 100%);
   color: var(--text);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 button,
@@ -107,8 +108,9 @@ a { color: inherit; }
 }
 
 .app-shell-chat {
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  height: auto;
+  overflow: visible;
 }
 
 .app-shell-knowledge,
@@ -267,10 +269,10 @@ a { color: inherit; }
 
 .page-chat {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  height: calc(100vh - 72px);
-  min-height: 0;
-  overflow: hidden;
+  grid-template-rows: auto auto;
+  height: auto;
+  min-height: calc(100vh - 72px);
+  overflow: visible;
 }
 
 .page-chat .page-heading {
@@ -378,7 +380,8 @@ a { color: inherit; }
   gap: 16px;
   align-items: stretch;
   min-height: 0;
-  height: 100%;
+  height: auto;
+  min-height: calc(100vh - 72px - 26px - 32px);
 }
 
 .chat-stage {
@@ -395,8 +398,12 @@ a { color: inherit; }
 
 .chat-stage,
 .chat-sidebar {
-  height: 100%;
   min-height: 0;
+}
+
+.chat-stage {
+  height: calc(100vh - 72px - 26px - 32px);
+  min-height: 620px;
 }
 
 .stage-bar,
@@ -623,9 +630,10 @@ a { color: inherit; }
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: var(--sidebar-height, calc(100vh - 72px - 26px - 32px - 68px));
+  height: auto;
+  max-height: none;
   align-self: stretch;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
   padding-right: 2px;
   scrollbar-gutter: stable;
