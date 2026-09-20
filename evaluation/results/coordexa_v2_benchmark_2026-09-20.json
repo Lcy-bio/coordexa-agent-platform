@@ -1,0 +1,1589 @@
+{
+  "generated_at": "2026-09-20T02:14:06.114472+00:00",
+  "dataset_name": "Coordexa 项目验收集 v2（稳定性扩展）",
+  "scope": "在 v1 标注集基础上重复执行 4 轮，用于观察真实 API 链路的稳定性、Token 追踪和降级行为；不代表生产环境通用准确率",
+  "repeat_factor": 4,
+  "base_chat_cases": 12,
+  "base_retrieval_cases": 6,
+  "chat": {
+    "cases": 48,
+    "successful_requests": 48,
+    "request_success_rate": 1.0,
+    "intent_accuracy": 0.8333,
+    "primary_route_accuracy": 1.0,
+    "agent_coverage_accuracy": 1.0,
+    "rag_gate_accuracy": 1.0,
+    "entity_case_accuracy": 1.0,
+    "entity_cases": 20,
+    "latency_ms": {
+      "mean": 20504.72,
+      "p50": 19951.31,
+      "p95": 42571.85
+    },
+    "details": [
+      {
+        "id": "greeting_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "greeting",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": false,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 7031.27,
+          "orchestrator_latency_ms": 2144.8
+        }
+      },
+      {
+        "id": "logistics_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": false,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 20041.26,
+          "orchestrator_latency_ms": 6122.2
+        }
+      },
+      {
+        "id": "logistics_02__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "logistics",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 22142.99,
+          "orchestrator_latency_ms": 6759.4
+        }
+      },
+      {
+        "id": "refund_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 21292.73,
+          "orchestrator_latency_ms": 7261.0
+        }
+      },
+      {
+        "id": "refund_02__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [
+              "A12345"
+            ],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 20845.72,
+          "orchestrator_latency_ms": 7434.4
+        }
+      },
+      {
+        "id": "invoice_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "invoice",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 21457.12,
+          "orchestrator_latency_ms": 7680.2
+        }
+      },
+      {
+        "id": "payment_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "payment_issue",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [
+              "50 元"
+            ],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 25596.44,
+          "orchestrator_latency_ms": 10957.1
+        }
+      },
+      {
+        "id": "technical_401_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_login",
+          "primary_agent": "technical",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "401"
+            ]
+          },
+          "end_to_end_latency_ms": 30522.8,
+          "orchestrator_latency_ms": 16808.3
+        }
+      },
+      {
+        "id": "technical_500_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_crash",
+          "primary_agent": "technical",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "500"
+            ]
+          },
+          "end_to_end_latency_ms": 35649.42,
+          "orchestrator_latency_ms": 19472.8
+        }
+      },
+      {
+        "id": "account_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": false,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 23325.19,
+          "orchestrator_latency_ms": 9010.8
+        }
+      },
+      {
+        "id": "handoff_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "human_handoff",
+          "primary_agent": "escalation",
+          "supporting_agents": [],
+          "knowledge_used": false,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 5109.69,
+          "orchestrator_latency_ms": 0.3
+        }
+      },
+      {
+        "id": "composite_01__run1",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_login",
+          "primary_agent": "technical",
+          "supporting_agents": [
+            "billing"
+          ],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "401"
+            ]
+          },
+          "end_to_end_latency_ms": 50744.57,
+          "orchestrator_latency_ms": 35282.9
+        }
+      },
+      {
+        "id": "greeting_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "greeting",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": false,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 2408.72,
+          "orchestrator_latency_ms": 2177.8
+        }
+      },
+      {
+        "id": "logistics_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": false,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 17924.63,
+          "orchestrator_latency_ms": 7164.5
+        }
+      },
+      {
+        "id": "logistics_02__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "logistics",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 17850.25,
+          "orchestrator_latency_ms": 7776.5
+        }
+      },
+      {
+        "id": "refund_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 15219.83,
+          "orchestrator_latency_ms": 5321.8
+        }
+      },
+      {
+        "id": "refund_02__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [
+              "A12345"
+            ],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 22726.54,
+          "orchestrator_latency_ms": 12793.9
+        }
+      },
+      {
+        "id": "invoice_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "invoice",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 18769.48,
+          "orchestrator_latency_ms": 8107.1
+        }
+      },
+      {
+        "id": "payment_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "payment_issue",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [
+              "50 元"
+            ],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 17287.24,
+          "orchestrator_latency_ms": 7888.6
+        }
+      },
+      {
+        "id": "technical_401_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_login",
+          "primary_agent": "technical",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "401"
+            ]
+          },
+          "end_to_end_latency_ms": 28363.48,
+          "orchestrator_latency_ms": 18015.9
+        }
+      },
+      {
+        "id": "technical_500_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_crash",
+          "primary_agent": "technical",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "500"
+            ]
+          },
+          "end_to_end_latency_ms": 22933.7,
+          "orchestrator_latency_ms": 11983.3
+        }
+      },
+      {
+        "id": "account_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": false,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 17417.02,
+          "orchestrator_latency_ms": 7581.2
+        }
+      },
+      {
+        "id": "handoff_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "human_handoff",
+          "primary_agent": "escalation",
+          "supporting_agents": [],
+          "knowledge_used": false,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 125.38,
+          "orchestrator_latency_ms": 0.1
+        }
+      },
+      {
+        "id": "composite_01__run2",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_login",
+          "primary_agent": "technical",
+          "supporting_agents": [
+            "billing"
+          ],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "401"
+            ]
+          },
+          "end_to_end_latency_ms": 42731.2,
+          "orchestrator_latency_ms": 33040.3
+        }
+      },
+      {
+        "id": "greeting_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "greeting",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": false,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 2122.43,
+          "orchestrator_latency_ms": 1956.5
+        }
+      },
+      {
+        "id": "logistics_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": false,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 18204.17,
+          "orchestrator_latency_ms": 8539.3
+        }
+      },
+      {
+        "id": "logistics_02__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "logistics",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 19037.3,
+          "orchestrator_latency_ms": 9419.0
+        }
+      },
+      {
+        "id": "refund_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 15664.72,
+          "orchestrator_latency_ms": 5969.0
+        }
+      },
+      {
+        "id": "refund_02__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [
+              "A12345"
+            ],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 20699.98,
+          "orchestrator_latency_ms": 10557.3
+        }
+      },
+      {
+        "id": "invoice_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "invoice",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 19861.35,
+          "orchestrator_latency_ms": 9934.2
+        }
+      },
+      {
+        "id": "payment_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "payment_issue",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [
+              "50 元"
+            ],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 25394.23,
+          "orchestrator_latency_ms": 16184.5
+        }
+      },
+      {
+        "id": "technical_401_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_login",
+          "primary_agent": "technical",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "401"
+            ]
+          },
+          "end_to_end_latency_ms": 29414.69,
+          "orchestrator_latency_ms": 18867.6
+        }
+      },
+      {
+        "id": "technical_500_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_crash",
+          "primary_agent": "technical",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "500"
+            ]
+          },
+          "end_to_end_latency_ms": 29869.58,
+          "orchestrator_latency_ms": 19040.0
+        }
+      },
+      {
+        "id": "account_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": false,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 18334.8,
+          "orchestrator_latency_ms": 7843.7
+        }
+      },
+      {
+        "id": "handoff_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "human_handoff",
+          "primary_agent": "escalation",
+          "supporting_agents": [],
+          "knowledge_used": false,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 208.02,
+          "orchestrator_latency_ms": 0.2
+        }
+      },
+      {
+        "id": "composite_01__run3",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_login",
+          "primary_agent": "technical",
+          "supporting_agents": [
+            "billing"
+          ],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "401"
+            ]
+          },
+          "end_to_end_latency_ms": 42275.91,
+          "orchestrator_latency_ms": 31726.5
+        }
+      },
+      {
+        "id": "greeting_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "greeting",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": false,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 2667.02,
+          "orchestrator_latency_ms": 2462.3
+        }
+      },
+      {
+        "id": "logistics_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": false,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 19207.68,
+          "orchestrator_latency_ms": 8651.2
+        }
+      },
+      {
+        "id": "logistics_02__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "logistics",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 17854.84,
+          "orchestrator_latency_ms": 8286.3
+        }
+      },
+      {
+        "id": "refund_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 17835.44,
+          "orchestrator_latency_ms": 7646.8
+        }
+      },
+      {
+        "id": "refund_02__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [
+              "A12345"
+            ],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 22929.57,
+          "orchestrator_latency_ms": 13805.2
+        }
+      },
+      {
+        "id": "invoice_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "invoice",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 18846.98,
+          "orchestrator_latency_ms": 8191.4
+        }
+      },
+      {
+        "id": "payment_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "payment_issue",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [
+              "50 元"
+            ],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 22113.42,
+          "orchestrator_latency_ms": 13005.7
+        }
+      },
+      {
+        "id": "technical_401_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_login",
+          "primary_agent": "technical",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "401"
+            ]
+          },
+          "end_to_end_latency_ms": 22581.72,
+          "orchestrator_latency_ms": 12943.2
+        }
+      },
+      {
+        "id": "technical_500_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_crash",
+          "primary_agent": "technical",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "500"
+            ]
+          },
+          "end_to_end_latency_ms": 25396.75,
+          "orchestrator_latency_ms": 15400.2
+        }
+      },
+      {
+        "id": "account_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": false,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "refund",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 17265.46,
+          "orchestrator_latency_ms": 5942.6
+        }
+      },
+      {
+        "id": "handoff_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true
+        },
+        "actual": {
+          "intent": "human_handoff",
+          "primary_agent": "escalation",
+          "supporting_agents": [],
+          "knowledge_used": false,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": []
+          },
+          "end_to_end_latency_ms": 194.62,
+          "orchestrator_latency_ms": 0.3
+        }
+      },
+      {
+        "id": "composite_01__run4",
+        "status": "ok",
+        "checks": {
+          "intent": true,
+          "primary": true,
+          "agent_set": true,
+          "rag_gate": true,
+          "entities": true
+        },
+        "actual": {
+          "intent": "technical_login",
+          "primary_agent": "technical",
+          "supporting_agents": [
+            "billing"
+          ],
+          "knowledge_used": true,
+          "entities": {
+            "order_id": [],
+            "product": [],
+            "date": [],
+            "amount": [],
+            "error_code": [
+              "401"
+            ]
+          },
+          "end_to_end_latency_ms": 48729.32,
+          "orchestrator_latency_ms": 38799.2
+        }
+      }
+    ]
+  },
+  "retrieval": {
+    "cases": 24,
+    "hit_at_3": 1.0,
+    "mrr": 1.0,
+    "details": [
+      {
+        "id": "rag_refund__run1",
+        "status": "ok",
+        "expected_title": "退款政策",
+        "returned_titles": [
+          "退款政策",
+          "数据安全与隐私",
+          "Coordexa 产品介绍"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_order__run1",
+        "status": "ok",
+        "expected_title": "订单查询",
+        "returned_titles": [
+          "订单查询",
+          "配送说明",
+          "退款政策"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_delivery__run1",
+        "status": "ok",
+        "expected_title": "配送说明",
+        "returned_titles": [
+          "配送说明",
+          "退款政策",
+          "订单查询"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_401__run1",
+        "status": "ok",
+        "expected_title": "技术故障排查",
+        "returned_titles": [
+          "技术故障排查",
+          "账户安全",
+          "数据安全与隐私"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_security__run1",
+        "status": "ok",
+        "expected_title": "账户安全",
+        "returned_titles": [
+          "账户安全",
+          "技术故障排查",
+          "运营协同角色"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_points__run1",
+        "status": "ok",
+        "expected_title": "会员与积分",
+        "returned_titles": [
+          "会员与积分",
+          "账户安全",
+          "数据安全与隐私"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_refund__run2",
+        "status": "ok",
+        "expected_title": "退款政策",
+        "returned_titles": [
+          "退款政策",
+          "数据安全与隐私",
+          "Coordexa 产品介绍"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_order__run2",
+        "status": "ok",
+        "expected_title": "订单查询",
+        "returned_titles": [
+          "订单查询",
+          "配送说明",
+          "退款政策"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_delivery__run2",
+        "status": "ok",
+        "expected_title": "配送说明",
+        "returned_titles": [
+          "配送说明",
+          "退款政策",
+          "订单查询"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_401__run2",
+        "status": "ok",
+        "expected_title": "技术故障排查",
+        "returned_titles": [
+          "技术故障排查",
+          "账户安全",
+          "数据安全与隐私"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_security__run2",
+        "status": "ok",
+        "expected_title": "账户安全",
+        "returned_titles": [
+          "账户安全",
+          "技术故障排查",
+          "运营协同角色"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_points__run2",
+        "status": "ok",
+        "expected_title": "会员与积分",
+        "returned_titles": [
+          "会员与积分",
+          "账户安全",
+          "数据安全与隐私"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_refund__run3",
+        "status": "ok",
+        "expected_title": "退款政策",
+        "returned_titles": [
+          "退款政策",
+          "数据安全与隐私",
+          "Coordexa 产品介绍"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_order__run3",
+        "status": "ok",
+        "expected_title": "订单查询",
+        "returned_titles": [
+          "订单查询",
+          "配送说明",
+          "退款政策"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_delivery__run3",
+        "status": "ok",
+        "expected_title": "配送说明",
+        "returned_titles": [
+          "配送说明",
+          "退款政策",
+          "订单查询"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_401__run3",
+        "status": "ok",
+        "expected_title": "技术故障排查",
+        "returned_titles": [
+          "技术故障排查",
+          "账户安全",
+          "数据安全与隐私"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_security__run3",
+        "status": "ok",
+        "expected_title": "账户安全",
+        "returned_titles": [
+          "账户安全",
+          "技术故障排查",
+          "运营协同角色"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_points__run3",
+        "status": "ok",
+        "expected_title": "会员与积分",
+        "returned_titles": [
+          "会员与积分",
+          "账户安全",
+          "数据安全与隐私"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_refund__run4",
+        "status": "ok",
+        "expected_title": "退款政策",
+        "returned_titles": [
+          "退款政策",
+          "数据安全与隐私",
+          "Coordexa 产品介绍"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_order__run4",
+        "status": "ok",
+        "expected_title": "订单查询",
+        "returned_titles": [
+          "订单查询",
+          "配送说明",
+          "退款政策"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_delivery__run4",
+        "status": "ok",
+        "expected_title": "配送说明",
+        "returned_titles": [
+          "配送说明",
+          "退款政策",
+          "订单查询"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_401__run4",
+        "status": "ok",
+        "expected_title": "技术故障排查",
+        "returned_titles": [
+          "技术故障排查",
+          "账户安全",
+          "数据安全与隐私"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_security__run4",
+        "status": "ok",
+        "expected_title": "账户安全",
+        "returned_titles": [
+          "账户安全",
+          "技术故障排查",
+          "运营协同角色"
+        ],
+        "rank": 1,
+        "hit": true
+      },
+      {
+        "id": "rag_points__run4",
+        "status": "ok",
+        "expected_title": "会员与积分",
+        "returned_titles": [
+          "会员与积分",
+          "账户安全",
+          "数据安全与隐私"
+        ],
+        "rank": 1,
+        "hit": true
+      }
+    ]
+  }
+}

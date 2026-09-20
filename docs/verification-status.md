@@ -55,6 +55,8 @@
 | 真实 `/chat` Token Trace | 通过 | DeepSeek Anthropic-compatible API 返回真实 usage；可按 request_id 和组件查看输入/输出/总 Token |
 | Prometheus LLM 指标 | 通过 | `/metrics` 暴露 `coordexa_llm_*` 调用数、Token、usage 缺失、延迟和活跃调用 |
 | 真实模型启动 | 通过 | 运行副本 Docker backend、Redis、ChromaDB 健康；模型 `DeepSeek-V4-pro[1m]` |
-| v2 稳定性扩展集 | 已准备 | v1 的 12 条对话和 6 条检索重复 4 轮，目标为 48 条对话请求和 24 条检索请求；运行命令见 `docs/v1.1-interview-hardening.md` |
+| v2 稳定性扩展集 | 通过 | 48/48 对话、24/24 检索请求成功；详细结果见 `evaluation/results/coordexa_v2_benchmark_2026-09-20.json` |
 
 一次真实问候烟测的记录为：2 次 LLM 调用，输入 1858 Token，输出 216 Token，总计 2074 Token，usage 可用率 2/2。成本价格环境变量未配置，因此成本字段保持 `null`，不做估算。
+
+v2 扩展集结果：意图准确率 83.33%，主 Agent 路由 100%，Agent 覆盖 100%，RAG 门控 100%，实体用例 100%，检索 Hit@3 100%、MRR 1.0000；端到端延迟平均 20.50 秒、P50 19.95 秒、P95 42.57 秒。4 轮重复中稳定出现两类意图边界误判：短物流问题被判为 `query`，账户安全问题被判为 `refund`，已保留在报告中作为下一轮优化样本。
