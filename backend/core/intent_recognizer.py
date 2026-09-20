@@ -80,11 +80,26 @@ _TEMPLATES: Dict[IntentCategory, List[str]] = {
     IntentCategory.ACCOUNT:    ["修改邮箱", "注销账户", "更新个人信息"],
     IntentCategory.FEEDBACK:   ["服务很棒！", "非常满意", "给个好评"],
     IntentCategory.ORDER_STATUS: ["我的订单现在是什么状态？", "订单有没有发货？", "订单处理到哪一步了？"],
-    IntentCategory.LOGISTICS: ["快递什么时候到？", "物流一直不更新", "配送要多久？"],
+    IntentCategory.LOGISTICS: [
+        "快递什么时候到？",
+        "物流一直不更新",
+        "配送要多久？",
+        "我的订单什么时候到？",
+        "订单预计什么时候送达？",
+        "快递还有多久到？",
+        "发货后几天能收到？",
+        "物流信息没有更新",
+    ],
     IntentCategory.REFUND: ["我要申请退款", "退货退款怎么处理？", "退款多久到账？"],
     IntentCategory.INVOICE: ["帮我开发票", "发票抬头怎么改？", "电子发票在哪里？"],
     IntentCategory.PAYMENT_ISSUE: ["为什么重复扣款？", "支付失败怎么办？", "这个月多扣了钱"],
-    IntentCategory.ACCOUNT_SECURITY: ["账户被盗了", "发现异常登录", "我要重置密码"],
+    IntentCategory.ACCOUNT_SECURITY: [
+        "账户被盗了",
+        "我的账号疑似被盗，怎么修改密码？",
+        "发现异常登录",
+        "账号安全有问题",
+        "我要重置密码",
+    ],
     IntentCategory.TECHNICAL_LOGIN: ["登录一直报401", "验证码收不到", "无法登录账号"],
     IntentCategory.TECHNICAL_CRASH: ["应用一直崩溃", "页面报500错误", "系统闪退"],
     IntentCategory.HUMAN_HANDOFF: ["转人工客服", "我要找人工", "请升级处理"],
@@ -256,6 +271,8 @@ class IntentRecognizer:
         prompt = f"""你是客服意图分析专家。根据示例判断用户意图，返回 JSON。
 如果用户问题能匹配细粒度业务意图，请优先返回细粒度意图，而不是宽泛大类。
 例如退款优先返回 refund，发票优先返回 invoice，登录故障优先返回 technical_login。
+物流、配送、预计到达、未收到货优先返回 logistics；账号被盗、异常登录、密码被改、
+两步验证优先返回 account_security。不能仅因为出现“订单”“账号”或“密码”就判为 refund。
 
         {ctx}
         用户消息: "{message}"
@@ -308,11 +325,20 @@ class IntentRecognizer:
         specific_patterns = {
             IntentCategory.HUMAN_HANDOFF: ["转人工", "人工客服", "找人工"],
             IntentCategory.ORDER_STATUS: ["订单状态", "发货了吗", "处理到哪", "order status"],
-            IntentCategory.LOGISTICS: ["物流", "快递", "配送", "运单", "delivery", "shipping"],
+            IntentCategory.LOGISTICS: [
+                "物流", "快递", "配送", "运单", "delivery", "shipping",
+                "什么时候到", "预计到达", "预计送达", "快递多久到", "订单多久到",
+                "配送多久到", "物流多久到", "快递几天到", "订单几天到",
+                "何时送达", "送达时间", "订单什么时候", "快递还没收到",
+                "快递未收到", "订单还没收到", "订单未收到", "物流未收到",
+            ],
             IntentCategory.REFUND: ["退款", "退货", "refund", "return"],
             IntentCategory.INVOICE: ["发票", "抬头", "税号", "invoice"],
             IntentCategory.PAYMENT_ISSUE: ["重复扣款", "多扣", "支付失败", "扣费", "payment failed"],
-            IntentCategory.ACCOUNT_SECURITY: ["被盗", "异常登录", "重置密码", "两步验证", "安全"],
+            IntentCategory.ACCOUNT_SECURITY: [
+                "被盗", "异常登录", "疑似被盗", "账号安全", "账户安全",
+                "重置密码", "密码被改", "两步验证", "验证码被盗", "登录异常",
+            ],
             IntentCategory.TECHNICAL_LOGIN: ["无法登录", "登录失败", "401", "验证码"],
             IntentCategory.TECHNICAL_CRASH: ["崩溃", "闪退", "500", "报错", "crash"],
         }
@@ -372,6 +398,12 @@ class IntentRecognizer:
         best_score = scores[best]
         pat_intent = pat.get("intent", IntentCategory.OTHER)
         pat_conf = float(pat.get("confidence", 0.0) or 0.0)
+        # 物流和账户安全属于高区分度边界：自然语言中常缺少“物流/快递”
+        # 等显式名词，或会被“账号/密码”泛化为 refund/account。命中强规则时
+        # 直接覆盖 LLM/Embedding 的宽泛结果，避免安全类意图误路由。
+        if pat_intent in {IntentCategory.LOGISTICS, IntentCategory.ACCOUNT_SECURITY} and pat_conf >= 0.5:
+            source_scores["explicit_specific"] = pat_conf
+            return pat_intent, max(best_score, pat_conf), source_scores
         if best in _GENERIC_INTENTS and pat_intent in _SPECIFIC_INTENTS and pat_conf >= 0.5 and best_score < 0.8:
             source_scores["refined_by_pattern"] = pat_conf
             return pat_intent, max(best_score, pat_conf), source_scores

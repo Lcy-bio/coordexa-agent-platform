@@ -42,6 +42,29 @@ def test_intent_parser_accepts_compatible_plain_text_output():
     assert parsed["confidence"] == 0.86
 
 
+@pytest.mark.parametrize(
+    "message,expected",
+    [
+        ("我的订单什么时候到？", IntentCategory.LOGISTICS),
+        ("我的账号疑似被盗，怎么修改密码？", IntentCategory.ACCOUNT_SECURITY),
+    ],
+)
+def test_high_specificity_intent_rules_override_generic_votes(message, expected):
+    """物流和账号安全边界不能被 query/refund 等宽泛结果覆盖。"""
+    recognizer = IntentRecognizer.__new__(IntentRecognizer)
+    recognizer._embedding_enabled = True
+    pattern = recognizer._pattern_recognize(message)
+    intent, confidence, source_scores = recognizer._vote(
+        {"intent": IntentCategory.QUERY, "confidence": 0.95},
+        {"intent": IntentCategory.REFUND, "confidence": 0.90},
+        pattern,
+    )
+    assert pattern["intent"] is expected
+    assert intent is expected
+    assert confidence >= 0.5
+    assert source_scores["explicit_specific"] >= 0.5
+
+
 def test_order_id_extraction_accepts_chinese_connector():
     recognizer = IntentRecognizer.__new__(IntentRecognizer)
 

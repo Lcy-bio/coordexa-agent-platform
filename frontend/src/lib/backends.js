@@ -81,6 +81,11 @@ export async function requestToolTrace(type, settings, requestId) {
   return normalizeToolTraceResponse(raw)
 }
 
+export async function requestLLMOverview(type, settings, limit = 100) {
+  const params = new URLSearchParams({ limit: String(limit) })
+  return requestJson(backendMeta(type, settings).baseUrl, `/trace/llm/overview?${params}`)
+}
+
 export async function addKnowledge(type, settings, documents) {
   return requestJson(backendMeta(type, settings).baseUrl, '/knowledge/add', {
     method: 'POST',
@@ -126,6 +131,7 @@ function normalizeChatResponse(type, raw) {
     escalated: Boolean(raw.escalated),
     latencyMs: Number(raw.latency_ms ?? raw.latencyMs ?? 0),
     knowledgeUsed: Boolean(raw.knowledge_used ?? raw.knowledgeUsed),
+    llmUsage: raw.llm_usage || raw.llmUsage || {},
     verified: raw.verified,
     grounded: raw.grounded,
     raw

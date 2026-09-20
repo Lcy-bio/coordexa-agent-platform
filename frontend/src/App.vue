@@ -191,6 +191,28 @@
               <p v-else class="side-empty">发送消息后，这里会显示 Agent 路由、意图和耗时。</p>
             </section>
 
+            <section class="side-card token-card">
+              <div class="card-heading">
+                <div>
+                  <span class="kicker">LLM observability</span>
+                  <h2>Token 用量</h2>
+                </div>
+                <button class="link-button" @click="loadLLMOverview">刷新</button>
+              </div>
+              <div class="mini-stats">
+                <div><strong>{{ llmTotals.total_tokens ?? '-' }}</strong><span>总 Token</span></div>
+                <div><strong>{{ llmTotals.calls ?? 0 }}</strong><span>调用</span></div>
+                <div><strong>{{ formatPercent(llmOverview.usage_available_rate || 0) }}</strong><span>usage 可用</span></div>
+              </div>
+              <dl class="detail-list token-detail-list">
+                <div><dt>输入</dt><dd>{{ llmTotals.input_tokens ?? '-' }}</dd></div>
+                <div><dt>输出</dt><dd>{{ llmTotals.output_tokens ?? '-' }}</dd></div>
+                <div><dt>最近请求</dt><dd>{{ llmOverview.request_count || 0 }}</dd></div>
+              </dl>
+              <p v-if="llmTotals.estimated_cost_usd == null" class="side-empty">未配置价格，成本不做估算。</p>
+              <p v-else class="side-empty">估算成本：${{ llmTotals.estimated_cost_usd }}</p>
+            </section>
+
             <section class="side-card monitor-card">
               <div class="card-heading">
                 <div>
@@ -322,6 +344,7 @@ import {
   requestChat,
   requestHealth,
   requestKnowledgeStats,
+  requestLLMOverview,
   requestMonitor,
   requestSearch,
   requestToolTrace,
@@ -350,6 +373,7 @@ const monitorData = ref({ agent_stats: {}, tool_stats: {}, active_alerts: [], su
 const skillsData = ref({ count: 0, skills: [], errors: [] })
 const lastResponse = ref(null)
 const lastTrace = ref(null)
+const llmOverview = ref({ totals: {}, request_count: 0, usage_available_rate: 0 })
 const evalData = ref(null)
 const toast = ref('')
 let toastTimer
@@ -362,6 +386,7 @@ const userInitial = computed(() => (settings.userId || 'U').slice(0, 1).toUpperC
 const activeAlerts = computed(() => monitorData.value.active_alerts || [])
 const agentCount = computed(() => Object.keys(monitorData.value.agent_stats || {}).length)
 const totalRequests = computed(() => Object.values(monitorData.value.agent_stats || {}).reduce((sum, item) => sum + Number(item.total || 0), 0))
+const llmTotals = computed(() => llmOverview.value.totals || {})
 
 watch(() => settings.conversationId, persist)
 onMounted(() => {
@@ -390,7 +415,7 @@ function updateSidebarHeight() {
 }
 
 async function refreshConsole() {
-  await Promise.allSettled([checkHealth(), loadStats(), loadMonitor(), loadSkills()])
+  await Promise.allSettled([checkHealth(), loadStats(), loadMonitor(), loadSkills(), loadLLMOverview()])
 }
 
 async function checkHealth() {
@@ -420,6 +445,14 @@ async function loadMonitor() {
     monitorData.value = await requestMonitor(settings.backend, settings)
   } catch {
     monitorData.value = { agent_stats: {}, tool_stats: {}, active_alerts: [], suggestions: [] }
+  }
+}
+
+async function loadLLMOverview() {
+  try {
+    llmOverview.value = await requestLLMOverview(settings.backend, settings, 100)
+  } catch {
+    llmOverview.value = { totals: {}, request_count: 0, usage_available_rate: 0 }
   }
 }
 
@@ -455,6 +488,7 @@ async function sendMessage() {
       persist()
     }
     lastResponse.value = response
+    await loadLLMOverview()
     lastTrace.value = await loadToolTrace(response.requestId)
     const meta = [response.intent, formatAgent(response.primaryAgent || response.agentType), response.knowledgeUsed ? 'RAG' : '', response.escalated ? '转人工' : ''].filter(Boolean).join(' · ')
     messages.value.push({ id: createMessageId(), role: 'assistant', content: response.response, meta, trace: lastTrace.value?.trace || null })

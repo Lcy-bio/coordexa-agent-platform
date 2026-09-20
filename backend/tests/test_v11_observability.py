@@ -42,6 +42,14 @@ def test_tracked_client_records_provider_usage_by_request_and_component():
     assert summary["components"] == ["test.component"]
 
 
+def test_llm_usage_overview_aggregates_components_and_requests():
+    overview = get_usage_tracker().overview(limit=500)
+    assert overview["request_count"] >= 1
+    assert overview["totals"]["total_tokens"] >= 19
+    assert "test.component" in overview["by_component"]
+    assert overview["by_request"][0]["request_id"]
+
+
 def test_context_budget_keeps_sections_and_marks_truncation():
     budget = ContextBudget(model_context_chars=1000, reserved_output_chars=200, prompt_chars=150, memory_chars=180, retrieval_chars=180)
     value = budget.fit_context(

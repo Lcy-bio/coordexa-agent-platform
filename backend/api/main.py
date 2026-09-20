@@ -482,6 +482,12 @@ async def list_recent_tool_traces(limit: int = 20):
     return RecentToolTracesResponse(items=_orchestrator.get_recent_tool_traces(limit=limit))
 
 
+@app.get("/trace/llm/overview")
+async def get_llm_overview(limit: int = Query(500, ge=1, le=500)):
+    """一键查看 LLM Token 总量、usage 可用率、组件和请求聚合。"""
+    return get_usage_tracker().overview(limit=limit)
+
+
 @app.get("/trace/llm/{request_id}")
 async def get_llm_trace(request_id: str, limit: int = Query(100, ge=1, le=500)):
     """查看一次请求涉及的所有 LLM 调用、Token usage 和成本估算。"""

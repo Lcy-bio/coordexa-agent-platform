@@ -215,6 +215,81 @@ class LLMUsageTracker:
             "records": values,
         }
 
+    def overview(self, limit: int = 500) -> Dict[str, Any]:
+        """返回可直接用于 Swagger/前端仪表盘的聚合观测摘要。"""
+        values = self.records(limit=limit)
+        by_component: Dict[str, Dict[str, Any]] = {}
+        by_request: Dict[str, Dict[str, Any]] = {}
+        for item in values:
+            component = item["component"]
+            component_summary = by_component.setdefault(component, {
+                "calls": 0,
+                "successful_calls": 0,
+                "failed_calls": 0,
+                "usage_available_calls": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+            })
+            component_summary["calls"] += 1
+            component_summary["successful_calls"] += int(item["success"])
+            component_summary["failed_calls"] += int(not item["success"])
+            component_summary["usage_available_calls"] += int(item["usage_available"])
+            component_summary["input_tokens"] += item["input_tokens"] or 0
+            component_summary["output_tokens"] += item["output_tokens"] or 0
+            component_summary["total_tokens"] += item["total_tokens"] or 0
+
+            request_summary = by_request.setdefault(item["request_id"], {
+                "request_id": item["request_id"],
+                "calls": 0,
+                "successful_calls": 0,
+                "usage_available_calls": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "components": set(),
+                "last_timestamp": item["timestamp"],
+            })
+            request_summary["calls"] += 1
+            request_summary["successful_calls"] += int(item["success"])
+            request_summary["usage_available_calls"] += int(item["usage_available"])
+            request_summary["input_tokens"] += item["input_tokens"] or 0
+            request_summary["output_tokens"] += item["output_tokens"] or 0
+            request_summary["total_tokens"] += item["total_tokens"] or 0
+            request_summary["components"].add(component)
+            request_summary["last_timestamp"] = item["timestamp"]
+
+        aggregate = self.summary(limit=limit)
+        request_rows = sorted(
+            (
+                {**row, "components": sorted(row["components"])}
+                for row in by_request.values()
+            ),
+            key=lambda row: row["last_timestamp"],
+            reverse=True,
+        )
+        return {
+            "limit": max(1, min(limit, 500)),
+            "records_scanned": len(values),
+            "request_count": len(by_request),
+            "usage_available_rate": round(
+                aggregate["usage_available_calls"] / aggregate["calls"], 4
+            ) if aggregate["calls"] else 0.0,
+            "totals": {
+                "calls": aggregate["calls"],
+                "successful_calls": aggregate["successful_calls"],
+                "failed_calls": aggregate["failed_calls"],
+                "usage_available_calls": aggregate["usage_available_calls"],
+                "usage_missing_calls": aggregate["usage_missing_calls"],
+                "input_tokens": aggregate["input_tokens"],
+                "output_tokens": aggregate["output_tokens"],
+                "total_tokens": aggregate["total_tokens"],
+                "estimated_cost_usd": aggregate["estimated_cost_usd"],
+            },
+            "by_component": by_component,
+            "by_request": request_rows,
+        }
+
 
 _TRACKER = LLMUsageTracker()
 
