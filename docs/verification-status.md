@@ -44,3 +44,17 @@
 - Judge 已增加一次受控重试；最近一组3轮对话解析成功率为3/3，但兼容接口仍可能出现偶发空文本。当前在线验收集不计算 Macro-F1。
 
 只有标记为“通过”且注明样本量和测试范围的结果可以作为当前完成证据。对外引用指标时必须保留“项目内验收集”限定。
+
+## v1.1 增量验证（2026-09-20）
+
+本节记录面试问题驱动分支 `feat/v1.1-interview-hardening` 的新增证据；上文的 v1.0 历史结果保持不变。
+
+| 检查项 | 结果 | 说明 |
+|---|---|---|
+| 后端自动化回归 | 通过 | 容器内 80 项全部通过，新增 Token usage、上下文预算、Chunk 硬切、空返回重试、fallback、熔断阈值、动态 Top-K 等测试 |
+| 真实 `/chat` Token Trace | 通过 | DeepSeek Anthropic-compatible API 返回真实 usage；可按 request_id 和组件查看输入/输出/总 Token |
+| Prometheus LLM 指标 | 通过 | `/metrics` 暴露 `coordexa_llm_*` 调用数、Token、usage 缺失、延迟和活跃调用 |
+| 真实模型启动 | 通过 | 运行副本 Docker backend、Redis、ChromaDB 健康；模型 `DeepSeek-V4-pro[1m]` |
+| v2 稳定性扩展集 | 已准备 | v1 的 12 条对话和 6 条检索重复 4 轮，目标为 48 条对话请求和 24 条检索请求；运行命令见 `docs/v1.1-interview-hardening.md` |
+
+一次真实问候烟测的记录为：2 次 LLM 调用，输入 1858 Token，输出 216 Token，总计 2074 Token，usage 可用率 2/2。成本价格环境变量未配置，因此成本字段保持 `null`，不做估算。
