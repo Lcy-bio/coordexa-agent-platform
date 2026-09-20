@@ -19,6 +19,19 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CASES = ROOT / "evaluation" / "fixtures" / "benchmark_cases.json"
 
 
+def expand_cases(cases: list[dict[str, Any]], repeat_factor: int) -> list[dict[str, Any]]:
+    """重复执行同一标注集，用于观察在线链路稳定性和长时间运行行为。"""
+    factor = max(1, int(repeat_factor or 1))
+    expanded = []
+    for run_index in range(1, factor + 1):
+        for case in cases:
+            item = dict(case)
+            item["id"] = f"{case['id']}__run{run_index}"
+            item["repeat_run"] = run_index
+            expanded.append(item)
+    return expanded
+
+
 def request_json(url: str, method: str = "GET", payload: Any = None, timeout: float = 180.0) -> Any:
     body = None
     headers: dict[str, str] = {}
@@ -190,13 +203,27 @@ def main() -> int:
 
     base_url = args.base_url.rstrip("/")
     dataset = json.loads(args.cases.read_text(encoding="utf-8"))
+    if dataset.get("inherits"):
+        base_path = (args.cases.parent / dataset["inherits"]).resolve()
+        base = json.loads(base_path.read_text(encoding="utf-8"))
+        for key in ("chat_cases", "retrieval_cases"):
+            if not dataset.get(key):
+                dataset[key] = base.get(key, [])
+        dataset["scope"] = dataset.get("scope") or base.get("scope")
+
+    repeat_factor = max(1, int(dataset.get("repeat_factor", 1)))
+    chat_cases = expand_cases(dataset.get("chat_cases") or [], repeat_factor)
+    retrieval_cases = expand_cases(dataset.get("retrieval_cases") or [], repeat_factor)
 
     report: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "dataset_name": dataset.get("dataset_name"),
         "scope": dataset.get("scope"),
-        "chat": run_chat_cases(base_url, dataset.get("chat_cases") or []),
-        "retrieval": run_retrieval_cases(base_url, dataset.get("retrieval_cases") or [], args.top_k),
+        "repeat_factor": repeat_factor,
+        "base_chat_cases": len(dataset.get("chat_cases") or []),
+        "base_retrieval_cases": len(dataset.get("retrieval_cases") or []),
+        "chat": run_chat_cases(base_url, chat_cases),
+        "retrieval": run_retrieval_cases(base_url, retrieval_cases, args.top_k),
     }
 
     if args.include_quality_eval:
