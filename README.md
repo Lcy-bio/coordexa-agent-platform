@@ -23,7 +23,7 @@ Coordexa 是基于通用客服 Agent 原型进行场景重构和工程化改造�
 
 > 版本口径：v1.0 是可运行的多 Agent 原型基线；v1.1 是面向技术面追问的工程加固；v2.0 是在 v1.1 基础上针对真实误判样本的意图规则与评测扩展。本节只记录已经落到代码、测试或基准报告中的内容。
 
-### v1.0.0｜基础架构与核心功能
+### v1.0｜基础架构与核心功能
 
 **实现内容**
 
@@ -39,7 +39,7 @@ Coordexa 是基于通用客服 Agent 原型进行场景重构和工程化改造�
 - 早期版本更偏向演示闭环，Token、上下文预算、空响应降级和动态检索的可观测性不足。
 - 不连接真实订单、支付、物流或工单系统，不能把演示结果解释为生产 SLA。
 
-### v1.1.0｜工程稳定性与可观测性改进
+### v1.1｜工程稳定性与可观测性改进
 
 **修复与强化**
 
@@ -55,7 +55,7 @@ Coordexa 是基于通用客服 Agent 原型进行场景重构和工程化改造�
 - Docker 测试镜像中的 80 项确定性测试通过。
 - v1.1 基线报告保存在 `evaluation/results/coordexa_v2_benchmark_2026-09-20.json`，报告中的指标均带样本量和测试口径。
 
-### v2.0.0｜意图识别规则与评测扩展
+### v2.0｜意图识别规则与评测扩展
 
 **变更内容**
 
@@ -201,6 +201,38 @@ python scripts/run_benchmark.py --base-url http://localhost:8200 --cases evaluat
 单次 `/chat` 响应包含 `llm_usage`；也可以通过 `/trace/llm/{request_id}` 查看按组件拆分的真实 Token usage。
 
 Token 观测也提供一键聚合入口：打开 Swagger 的 `GET /trace/llm/overview`，即可查看最近记录的总调用数、输入/输出/总 Token、usage 可用率、按组件和按请求聚合；前端工作台“对话”侧栏中的“Token 用量”卡片会自动读取同一接口，发送消息后点击“刷新”即可查看。单次请求仍可用 `GET /trace/llm/{request_id}` 深入查看。
+
+### Token 消耗查询方式
+
+#### 前端工作台
+
+1. 打开 http://localhost:8080，进入“对话”页面。
+2. 发送一条请求，等待助手返回。
+3. 在右侧“LLM observability / Token 用量”卡片中查看总 Token、调用次数、输入 Token、输出 Token 和 usage 可用率。
+4. 点击卡片右上角“刷新”，通过 `/trace/llm/overview` 重新拉取最近观测记录。
+
+#### 后端 Swagger
+
+打开 http://localhost:8200/docs，使用以下接口：
+
+| 接口 | 用途 |
+|---|---|
+| `GET /trace/llm/overview?limit=100` | 聚合查询最近记录的调用数、输入/输出/总 Token、usage 可用率、按组件和按请求统计 |
+| `GET /trace/llm/{request_id}` | 查询某一次 `/chat` 请求的全部 LLM 调用明细 |
+| `GET /trace/llm?limit=20` | 查看最近若干条原始 LLM usage 记录 |
+| `GET /metrics` | 查看 Prometheus 格式的累计调用、Token、延迟和 usage 缺失指标 |
+
+一次 `/chat` 响应中的 `request_id` 可以直接作为单请求查询接口的参数。例如：
+
+```powershell
+$overview = Invoke-RestMethod "http://localhost:8200/trace/llm/overview?limit=100"
+$overview.totals
+
+$detail = Invoke-RestMethod "http://localhost:8200/trace/llm/<request_id>"
+$detail.records
+```
+
+当前详细记录保存在后端进程内存中，最多保留最近 5000 条；后端容器重启后，`/trace/llm` 的历史明细会清空。Prometheus 指标是否持久化取决于 Prometheus 的部署与存储配置。只有模型服务实际返回 usage 时才计入真实 Token，未返回 usage 的调用会标记为不可用，不会用字符数估算。
 
 ## 项目结构
 
